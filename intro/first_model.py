@@ -14,5 +14,9 @@ def first_model():
 
     # TODO: 3. Set the objective function to maximize x + y
 
-    return model
+    x = model.addVar("x", vtype="B")
+    y = model.addVar("y", vtype="B")
+    model.addCons(x + y <= 1)
+    model.setObjective(x + y, "maximize")
 
+    return model

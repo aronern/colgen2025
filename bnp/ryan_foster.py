@@ -28,25 +28,30 @@ class RyanFoster(Branchrule):
 
         chosen_pair = choose_fractional_pair(patterns_with_vals)
 
-        # TODO (Exercise 2: choose a fractional pair to branch on)
-        # Left subproblem: enforce that pair is in the same bin
+        parent_together = set()
+        parent_apart = set()
+
+        parent = self.model.getCurrentNode()
+        if parent:
+            parent_together = set(
+                self.branching_decisions[parent.getNumber()]["together"])
+            parent_apart = set(
+                self.branching_decisions[parent.getNumber()]["apart"])
+
         left_node = self.model.createChild(0, 0)
-        
-        raise NotImplementedError("Complete the following: what should be the value of together and apart?")
-        # self.branching_decisions[left_node.getNumber()] = {
-        #     "together": ?,
-        #     "apart": ?
-        # }
+        self.branching_decisions[left_node.getNumber()] = {
+            "together": parent_together.union({chosen_pair}),
+            "apart": parent_apart
+        }
 
         # Right subproblem: enforce that pair is in different bins
         right_node = self.model.createChild(0, 0)
 
-        raise NotImplementedError("Complete the following: what should be the value of together and apart?")
-        # self.branching_decisions[right_node.getNumber()] = {
-            # "together": ?,
-            # "apart": ?
-        # }
-        
+        self.branching_decisions[right_node.getNumber()] = {
+            "together": parent_together,
+            "apart": parent_apart.union({chosen_pair})
+        }
+
         return {"result": SCIP_RESULT.BRANCHED}
 
 
@@ -61,7 +66,18 @@ def all_fractional_pairs(patterns_with_vals: List[tuple[List[int], float]]) -> L
     List[tuple[int, int]] - a list of pairs of items that are fractional in the LP solution
     """
 
-    raise NotImplementedError("Implement this function")
+    counterDict = {}
+    for pattern in range(len(patterns_with_vals)):
+        if (len(patterns_with_vals[pattern][0]) <= 1):
+            continue
+        for i in range(len(patterns_with_vals[pattern][0])-1):
+            item1 = patterns_with_vals[pattern][0][i]
+            for j in range(i + 1, len(patterns_with_vals[pattern][0])):
+                item2 = patterns_with_vals[pattern][0][j]
+                counterDict[(item1, item2)] = counterDict.get(
+                    (item1, item2), 0) + patterns_with_vals[pattern][1]
+    print(counterDict)
+    return [(item1, item2) for (item1, item2), val in counterDict.items() if val % 1 != 0]
 
 
 def choose_fractional_pair(patterns_with_vals: List[tuple[List[int], float]]) -> tuple[int, int]:

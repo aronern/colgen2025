@@ -1,6 +1,6 @@
 from typing import List
 
-from pyscipopt import Model
+from pyscipopt import Model, quicksum
 
 
 def pricing_solver(sizes: List[int], capacity: int, dual_solution: dict[float], together: set[tuple[int, int]],
@@ -21,7 +21,8 @@ def pricing_solver(sizes: List[int], capacity: int, dual_solution: dict[float], 
 
     profits = [dual_solution[i] for i in range(len(sizes))]
     if len(together) > 0 or len(apart) > 0:
-        result = solve_knapsack_with_constraints(sizes, profits, capacity, together, apart)
+        result = solve_knapsack_with_constraints(
+            sizes, profits, capacity, together, apart)
     else:
         result = solve_knapsack(sizes, profits, capacity)
 
@@ -42,8 +43,25 @@ def solve_knapsack(sizes: List[int], values: List[float], capacity: int) -> tupl
     Returns:
     tuple[float, List[int]] - the optimal value and the packing of the items
     """
+    model = Model()
 
-    raise NotImplementedError("The knapsack solver is not implemented yet")
+    varsA = {}
+    for i in range(len(values)):
+        # Create a variable for each item
+        varsA[i] = model.addVar(vtype="B", name=f"a_{i}")
+
+    model.addCons(quicksum(
+        sizes[i]*varsA[i] for i in range(len(sizes))) <= capacity, name="capacity")
+
+    model.setObjective(quicksum(values[i]*varsA[i]
+                       for i in range(len(values))), sense="maximize")
+
+    model.optimize()
+    returnList = []
+    for i in range(len(values)):
+        if model.getVal(varsA[i]) > 0.5:
+            returnList.append(i)
+    return (model.getObjVal(), returnList)
 
 
 def solve_knapsack_with_constraints(
@@ -63,5 +81,28 @@ def solve_knapsack_with_constraints(
     Returns:
     tuple[float, List[int]] - the optimal value and the packing of the items
     """
+    model = Model()
 
-    raise NotImplementedError("The knapsack solver with constraints is not implemented yet")
+    varsA = {}
+    for i in range(len(values)):
+        # Create a variable for each item
+        varsA[i] = model.addVar(vtype="B", name=f"a_{i}")
+
+    model.addCons(quicksum(
+        sizes[i]*varsA[i] for i in range(len(sizes))) <= capacity, name="capacity")
+
+    for i, j in together:
+        model.addCons(varsA[i] == varsA[j], name=f"together_{i}_{j}")
+
+    for i, j in apart:
+        model.addCons(varsA[i] + varsA[j] <= 1, name=f"apart_{i}_{j}")
+
+    model.setObjective(quicksum(values[i]*varsA[i]
+                       for i in range(len(values))), sense="maximize")
+
+    model.optimize()
+    returnList = []
+    for i in range(len(values)):
+        if model.getVal(varsA[i]) > 0.5:
+            returnList.append(i)
+    return (model.getObjVal(), returnList)
